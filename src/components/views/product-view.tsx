@@ -276,7 +276,7 @@ export function ProductView({ slug }: { slug: string }) {
           {!soldOut && product.stock <= 2 && (
             <p className="text-xs text-rose font-bold mb-5 inline-flex items-center gap-1.5">
               <Heart size={13} className="fill-rose" />
-              فقط {toFa(product.stock)} عدد مونده — زودتر بهتر!
+              فقط {toFa(product.stock)} عدد مونده — هرچه زودتر خرید کنید!
             </p>
           )}
 

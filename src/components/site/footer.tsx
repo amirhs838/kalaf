@@ -32,7 +32,7 @@ export function Footer() {
             </p>
             <div className="mt-4 inline-flex items-center gap-2 text-xs bg-cream text-ink/80 px-3 py-1.5 rounded-full border border-kraft">
               <span className="w-1.5 h-1.5 rounded-full bg-clay" />
-              پرداخت فقط کارت‌به‌کارت — بدون درگاه آنلاین
+              پرداخت کارت‌به‌کارت، ارسال طبق مراحل
             </div>
           </div>
 
