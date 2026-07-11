@@ -1,7 +1,8 @@
 -- ============================================================
--- کلاف و کاغذ — Supabase schema
+-- کلاف و کاغذ — Supabase schema + disable RLS
 -- این فایل را یک‌بار در Supabase Dashboard → SQL Editor → New query
--- اجرا کنید. جداول ساخته می‌شوند (اگر وجود ندارند).
+-- اجرا کنید. جداول ساخته می‌شوند و RLS (که جلوی خواندن/نوشتن را
+-- می‌گیرد) غیرفعال می‌شود.
 -- ============================================================
 
 -- Products
@@ -87,7 +88,7 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
---.updated_at trigger
+-- updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -99,3 +100,18 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON orders;
 CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON orders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- غیرفعال کردن Row-Level Security (RLS)
+-- ------------------------------------------------------------
+-- Supabase به‌طور پیش‌فرض RLS را روی همه‌ی جدول‌ها فعال می‌کند. بدون
+-- تعریف policy، publishable key نمی‌تواند چیزی بخواند یا بنویسد
+-- (به همین دلیل محصولات نمایش داده نمی‌شدند!).
+-- این یک فروشگاه تک‌مدیریتی است (بدون احراز هویت کاربر)، پس
+-- غیرفعال کردن RLS امن و ساده‌ترین راه است.
+-- ============================================================
+ALTER TABLE products        DISABLE ROW LEVEL SECURITY;
+ALTER TABLE orders          DISABLE ROW LEVEL SECURITY;
+ALTER TABLE order_items     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_sessions  DISABLE ROW LEVEL SECURITY;
