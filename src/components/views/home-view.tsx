@@ -7,7 +7,24 @@ import { CATEGORY_LABELS, type Category, type Product } from "@/lib/types";
 import { ProductCard } from "@/components/site/product-card";
 import { StitchDivider } from "@/components/site/stitch-divider";
 import { YarnBall } from "@/components/site/logo";
-import { ArrowLeft, Sparkles, Heart, ShoppingBag, CreditCard, Upload, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart, ShoppingBag, CreditCard, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+
+/** NOTICE shown when the database isn't configured (e.g. local dev without a Supabase URL). */
+function DbNotice() {
+  return (
+    <div className="col-span-full flex items-start gap-3 bg-cream/70 border border-honey/50 rounded-2xl p-4 text-sm">
+      <AlertCircle size={18} className="text-honey shrink-0 mt-0.5" />
+      <div className="text-ink/80 leading-7">
+        <p className="font-bold text-ink mb-1">دیتابیس وصل نیست</p>
+        محصولات الان نمایش داده نمی‌شن. برای اجرای محلی، connection string پروژه‌ی Supabase
+        (یا هر PostgreSQL) رو در فایل <code className="bg-surface px-1.5 py-0.5 rounded text-xs">.env</code> به‌عنوان{" "}
+        <code className="bg-surface px-1.5 py-0.5 rounded text-xs" dir="ltr">DATABASE_URL</code> بذارید، بعد{" "}
+        <code className="bg-surface px-1.5 py-0.5 rounded text-xs" dir="ltr">bun run db:push &amp;&amp; bun run seed</code>{" "}
+        رو اجرا کنید. روی Vercel، اتصال Supabase خودکار این رو حل می‌کنه.
+      </div>
+    </div>
+  );
+}
 
 function SectionTitle({
   kicker,
@@ -262,6 +279,10 @@ export function HomeView() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="aspect-[3/4] rounded-2xl bg-cream animate-pulse" />
             ))}
+          </div>
+        ) : fresh.error || freshProducts.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <DbNotice />
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
