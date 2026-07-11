@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mapOrder } from "@/lib/mappers";
-import path from "path";
-import { writeFile, mkdir } from "fs/promises";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "receipts");
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/gif"];
-const MAX_BYTES = 6 * 1024 * 1024;
+const MAX_BYTES = 2 * 1024 * 1024; // 2 MB — keeps DB rows small on serverless
 
 export async function POST(req: NextRequest) {
   let form: FormData;
@@ -44,28 +41,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "فایل خالی است" }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "حجم فایل بیش از ۶ مگابایت است" }, { status: 400 });
+    return NextResponse.json({ error: "حجم فایل بیش از ۲ مگابایت است" }, { status: 400 });
   }
   const type = file.type || "image/jpeg";
   if (!ALLOWED.includes(type)) {
     return NextResponse.json({ error: "فقط فایل عکس مجاز است" }, { status: 400 });
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  const ext = type.split("/")[1] || "jpg";
-  const safeName = `${trackingCode}-${Date.now()}.${ext}`;
-  const filePath = path.join(UPLOAD_DIR, safeName);
+  // Store as a base64 data URL directly in the DB. Vercel's filesystem is
+  // read-only at runtime, so we can't write uploaded files to disk there.
+  // Receipts are small payment screenshots (<2 MB), so this is fine.
   const buf = Buffer.from(await file.arrayBuffer());
-  await writeFile(filePath, buf);
+  const dataUrl = `data:${type};base64,${buf.toString("base64")}`;
 
   const updated = await db.order.update({
     where: { id: order.id },
     data: {
-      receiptPath: `/uploads/receipts/${safeName}`,
+      receiptPath: dataUrl,
       receiptOriginalName: file.name,
       transactionCode: transactionCode || order.transactionCode,
       notes: note ? (order.notes ? `${order.notes}\n— ${note}` : note) : order.notes,
-      // reset to pending_review if it was cancelled? keep current; but ensure status pending
       status: order.status === "pending_review" ? "pending_review" : order.status,
     },
     include: { items: true },

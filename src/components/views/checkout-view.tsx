@@ -122,8 +122,8 @@ export function CheckoutView() {
       toast.error("فقط فایل عکس");
       return;
     }
-    if (f.size > 6 * 1024 * 1024) {
-      toast.error("حجم فایل بیش از ۶ مگابایت");
+    if (f.size > 2 * 1024 * 1024) {
+      toast.error("حجم فایل بیش از ۲ مگابایت");
       return;
     }
     setFile(f);
@@ -433,7 +433,7 @@ export function CheckoutView() {
                         <Upload size={22} className="text-clay" />
                       </div>
                       <p className="text-sm font-bold text-ink mb-1">عکس رسید رو اینجا بکش یا کلیک کن</p>
-                      <p className="text-xs text-muted-foreground">JPG, PNG, WEBP — حداکثر ۶ مگابایت</p>
+                      <p className="text-xs text-muted-foreground">JPG, PNG, WEBP — حداکثر ۲ مگابایت</p>
                     </>
                   )}
                 </div>
