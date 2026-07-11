@@ -97,3 +97,24 @@ Stage Summary:
 - مشکل local حل شد (سایت بالا می‌آید).
 - مشکل build ورسل حل شد با lazy Prisma client (build اکنون بدون نیاز به DATABASE_URL در build-time انجام می‌شود).
 - ⚠️ نکته‌ی حیاتی برای کاربر: باید قبل از redeploy در Vercel، متغیرهای محیطی (حداقل DATABASE_URL و DATABASE_AUTH_TOKEN از Turso، به‌علاوه‌ی SHOP_* values) را در Settings → Environment Variables اضافه کند. بدون DATABASE_URL در runtime، APIها خطا می‌دهند.
+
+---
+Task ID: S (supabase one-click)
+Agent: main (orchestrator)
+Task: اتصال یک‌کلیکی Supabase روی Vercel (به‌جای Tursoی دستی)
+
+Work Log:
+- مهاجرت Prisma provider از sqlite به postgresql (Supabase = Postgres).
+- db.ts بازنویسی: native PrismaClient (بدون adapter)، حذف @prisma/adapter-libsql و @libsql/client، حفظ lazy Proxy، fallback URL: DATABASE_URL || POSTGRES_PRISMA_URL. (ورسل از دکمه‌ی Connect Supabase خودکار POSTGRES_PRISMA_URL رو ست می‌کنه.)
+- scripts/sync-db.mjs جدید: موقع build روی ورسل اجرا می‌شه → prisma db push (ساخت/همگام‌سازی schema) + اگه دیتابیس خالی باشه seed. مقاوم در برابر خطا (build رو نمی‌شکنه). از POSTGRES_PRISMA_URL استفاده می‌کنه.
+- seed.ts idempotent: اگه محصولات موجود باشن و SEED_FORCE ست نباشه، skip.
+- package.json: build = "node scripts/sync-db.mjs && next build".
+- .env / .env.example / README آپدیت برای Supabase.
+- تست بحرانی: `bun run build` بدون DATABASE_URL (سناریوی ورسل قبل از اتصال Supabase) — sync-db skip کرد و next build کامل موفق شد (همون جایی که قبلاً "DATABASE_URL is not set" می‌داد). prisma validate برای postgres هم passed.
+- lint تمیز.
+- commit + push به github.com/amirhs838/kalaf (commit 52de2e4).
+
+Stage Summary:
+- حالا تجربه‌ی دیپلوی: Vercel → Storage → Connect Supabase (یک کلیک) → Deploy. schema و seed خودکار. فقط متغیرهای SHOP_* (کارت، واتساپ، ...) رو دستی اضافه کنه.
+- نکته: local dev الان نیاز به connection string Supabase داره (توی .env). قبلاً sqlite لوکال بود ولی برای هم‌خوانی با Supabase، postgres شد.
+- محدودیت تست: نتونستم runtime رو لوکال تست کنم (چون postgres/Supabase واقعی لازمه) ولی build (سناریوی ورسل) و schema validity تأیید شدن.
