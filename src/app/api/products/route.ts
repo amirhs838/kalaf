@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/db";
 import { mapProduct } from "@/lib/mappers";
-import type { Category } from "@/lib/types";
+import type { ProductRow } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -15,25 +15,24 @@ export async function GET(req: NextRequest) {
   const q = sp.get("q");
   const limit = sp.get("limit");
 
-  const where: Record<string, unknown> = {};
-  if (category && category !== "all") where.category = category as Category;
-  if (featured === "true") where.isFeatured = true;
-  if (fresh === "true") where.isNew = true;
-  if (available === "true") where.stock = { gt: 0 };
-  if (min || max) {
-    const price: Record<string, number> = {};
-    if (min) price.gte = Number(min);
-    if (max) price.lte = Number(max);
-    where.price = price;
+  let query = supabase.from("products").select("*");
+
+  if (category && category !== "all") query = query.eq("category", category);
+  if (featured === "true") query = query.eq("is_featured", true);
+  if (fresh === "true") query = query.eq("is_new", true);
+  if (available === "true") query = query.gt("stock", 0);
+  if (min) query = query.gte("price", Number(min));
+  if (max) query = query.lte("price", Number(max));
+  if (limit) query = query.limit(Number(limit));
+
+  query = query.order("created_at", { ascending: false });
+
+  const { data, error } = await query;
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const products = await db.product.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    ...(limit ? { take: Number(limit) } : {}),
-  });
-
-  let result = products.map(mapProduct);
+  let result = (data as ProductRow[]).map(mapProduct);
 
   if (color) {
     result = result.filter((p) =>

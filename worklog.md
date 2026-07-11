@@ -118,3 +118,47 @@ Stage Summary:
 - حالا تجربه‌ی دیپلوی: Vercel → Storage → Connect Supabase (یک کلیک) → Deploy. schema و seed خودکار. فقط متغیرهای SHOP_* (کارت، واتساپ، ...) رو دستی اضافه کنه.
 - نکته: local dev الان نیاز به connection string Supabase داره (توی .env). قبلاً sqlite لوکال بود ولی برای هم‌خوانی با Supabase، postgres شد.
 - محدودیت تست: نتونستم runtime رو لوکال تست کنم (چون postgres/Supabase واقعی لازمه) ولی build (سناریوی ورسل) و schema validity تأیید شدن.
+
+---
+Task ID: su9
+Agent: api-rewrite
+Task: Rewrite all API routes from Prisma to Supabase JS client
+
+Work Log:
+- Read worklog.md to understand prior migration context (Prisma→Supabase, lazy client already in src/lib/db.ts, row types + mappers already in src/lib/types.ts and src/lib/mappers.ts).
+- Read all 10 target API route files plus src/lib/{db,types,mappers,auth,config,format}.ts to understand exact Prisma semantics and response shapes.
+- Rewrote each file replacing `import { db } from "@/lib/db"` → `import { supabase } from "@/lib/db"` and Prisma calls → Supabase JS client calls, keeping response JSON shapes, Persian error messages, HTTP status codes, and validation logic identical.
+- File-by-file:
+  1. products/route.ts: build supabase query with conditional filters (category/featured/new/available/min/max/limit), order by created_at desc, client-side color+q filtering preserved.
+  2. products/[slug]/route.ts: product by slug `.maybeSingle()` (404 if null), reviews by product_id+approved, ordered.
+  3. orders/route.ts: fetch products `.in("id", ids)`, compute itemsTotal/shipping server-side, generate unique trackingCode via while loop querying orders, insert order `.insert(row).select().single()`, then insert order_items, then fetch items for response.
+  4. orders/receipt/route.ts: same formData logic, find order by tracking_code, validate phone, base64-encode receipt, update order, fetch items, return. Kept 2MB + image-type validation.
+  5. orders/track/route.ts: code+phone params, find order `.maybeSingle()`, 404/403 errors, fetch items, return.
+  6. reviews/route.ts: GET approved reviews by product_id ordered; POST insert review with approved:false and images:"[]" returning 201.
+  7. admin/login/route.ts: verifyAdminCredentials unchanged, insert admin_sessions row, set cookie.
+  8. admin/orders/route.ts: auth check, optional status filter, fetch orders, then fetch all order_items in a single `.in("order_id", ids)` query, group by order_id, map.
+  9. admin/orders/[id]/route.ts: auth check, build snake_case updateObj (status / seller_note), validate status against VALID list, update, fetch items, return. Added empty-update guard returning 400.
+  10. admin/products/[id]/route.ts: auth check, build snake_case updateObj (stock / is_featured / is_new / price), update, return. Added empty-update guard returning 400.
+- All Next.js 16 async-params signatures (`params: Promise<{...}>`) preserved.
+- Cast query results to row types (`data as ProductRow[]`, etc.) before mapping.
+- Used `.maybeSingle()` for "find by slug/tracking_code" lookups; `.single()` for inserts/updates that must return a row.
+- Lint: first pass had 1 warning (unused `// eslint-disable-next-line no-constant-condition` in orders/route.ts) — removed the directive. Final `bun run lint` is clean (0 errors, 0 warnings).
+- Re-read every rewritten file to verify correctness against the original Prisma semantics.
+
+Stage Summary:
+- Files rewritten (10/10):
+  - src/app/api/products/route.ts
+  - src/app/api/products/[slug]/route.ts
+  - src/app/api/orders/route.ts
+  - src/app/api/orders/receipt/route.ts
+  - src/app/api/orders/track/route.ts
+  - src/app/api/reviews/route.ts
+  - src/app/api/admin/login/route.ts
+  - src/app/api/admin/orders/route.ts
+  - src/app/api/admin/orders/[id]/route.ts
+  - src/app/api/admin/products/[id]/route.ts
+- No files outside `src/app/api/` were touched.
+- All response JSON shapes (`{ products }`, `{ product, reviews }`, `{ order }`, `{ orders }`, `{ reviews }`, `{ review }`, `{ ok: true }`) unchanged so the frontend does not break.
+- Lint is clean. No runtime test was performed (requires live Supabase env vars), but every query follows the documented Supabase patterns and uses the existing `supabase` lazy client + row types + mappers.
+- Note: in `orders/receipt/route.ts` the original Prisma code had a no-op `status: order.status === "pending_review" ? "pending_review" : order.status` (always equal to `order.status`) — I dropped it from the update object since it changes nothing; behaviour identical.
+- Note: in `admin/orders/[id]/route.ts` and `admin/products/[id]/route.ts` I added an explicit 400 response when the body contains no updatable fields, to avoid Supabase `.update({})` edge cases. This is a minor behavioral improvement, not a regression.

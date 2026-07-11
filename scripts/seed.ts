@@ -1,4 +1,28 @@
-import { db } from "../src/lib/db";
+/**
+ * scripts/seed.ts
+ *
+ * Adds sample products + reviews to Supabase IF the products table is empty.
+ * Idempotent — safe to run on every Vercel build. Exits 0 even on error so
+ * the build never breaks.
+ *
+ * Requires NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.
+ * Tables must already exist (run supabase/schema.sql once in Supabase SQL Editor).
+ */
+import { createClient } from "@supabase/supabase-js";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!url || !key) {
+  console.log("ℹ️  متغیرهای Supabase تنظیم نشده‌اند — از seed صرف‌نظر شد.");
+  process.exit(0);
+}
+
+const supabase = createClient(url, key, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 type SeedProduct = {
   slug: string;
@@ -9,13 +33,13 @@ type SeedProduct = {
   price: number;
   images: string[];
   stock: number;
-  isUnique: boolean;
-  isFeatured: boolean;
-  isNew: boolean;
+  is_unique: boolean;
+  is_featured: boolean;
+  is_new: boolean;
   colors: string[];
   materials: string;
   dimensions: string;
-  prepDays: number;
+  prep_days: number;
   customizable: boolean;
 };
 
@@ -31,13 +55,13 @@ const products: SeedProduct[] = [
     price: 185000,
     images: ["/images/doll-bunny.jpg", "/images/scene-yarn-basket.jpg"],
     stock: 1,
-    isUnique: true,
-    isFeatured: false,
-    isNew: true,
+    is_unique: true,
+    is_featured: false,
+    is_new: true,
     colors: ["کرم", "قهوه‌ای روشن"],
     materials: "نخ پنبه ۱۰۰٪، الیاف ضدحساسیت، دکمه‌های ایمن چشمی",
     dimensions: "ارتفاع ۲۴ سانتی‌متر",
-    prepDays: 4,
+    prep_days: 4,
     customizable: true,
   },
   {
@@ -50,13 +74,13 @@ const products: SeedProduct[] = [
     price: 165000,
     images: ["/images/doll-bear.jpg"],
     stock: 2,
-    isUnique: false,
-    isFeatured: true,
-    isNew: false,
+    is_unique: false,
+    is_featured: true,
+    is_new: false,
     colors: ["عسلی", "قهوه‌ای"],
     materials: "نخ اکریلیک پلاش، الیاف ضدحساسیت",
     dimensions: "ارتفاع ۲۰ سانتی‌متر",
-    prepDays: 3,
+    prep_days: 3,
     customizable: true,
   },
   {
@@ -69,13 +93,13 @@ const products: SeedProduct[] = [
     price: 175000,
     images: ["/images/doll-cat.jpg"],
     stock: 2,
-    isUnique: false,
-    isFeatured: false,
-    isNew: false,
+    is_unique: false,
+    is_featured: false,
+    is_new: false,
     colors: ["خاکستری", "صورتی خاکی"],
     materials: "نخ پنبه و اکریلیک، الیاف ضدحساسیت",
     dimensions: "ارتفاع ۲۲ سانتی‌متر (با دم ۳۰)",
-    prepDays: 4,
+    prep_days: 4,
     customizable: true,
   },
   {
@@ -88,13 +112,13 @@ const products: SeedProduct[] = [
     price: 145000,
     images: ["/images/doll-mushroom.jpg"],
     stock: 1,
-    isUnique: true,
-    isFeatured: false,
-    isNew: true,
+    is_unique: true,
+    is_featured: false,
+    is_new: true,
     colors: ["قرمز", "کرم"],
     materials: "نخ پنبه، الیاف ضدحساسیت",
     dimensions: "ارتفاع ۱۴ سانتی‌متر",
-    prepDays: 3,
+    prep_days: 3,
     customizable: false,
   },
   {
@@ -107,13 +131,13 @@ const products: SeedProduct[] = [
     price: 245000,
     images: ["/images/bag-tote.jpg"],
     stock: 3,
-    isUnique: false,
-    isFeatured: true,
-    isNew: false,
+    is_unique: false,
+    is_featured: true,
+    is_new: false,
     colors: ["زنگاری", "کرم"],
     materials: "نخ پنبه بافتنی، دسته چوبی، آستر پارچه‌ای",
     dimensions: "۳۵×۳۸ سانتی‌متر، دسته ۲۸ سانتی‌متر",
-    prepDays: 5,
+    prep_days: 5,
     customizable: true,
   },
   {
@@ -126,13 +150,13 @@ const products: SeedProduct[] = [
     price: 265000,
     images: ["/images/bag-crossbody.jpg"],
     stock: 1,
-    isUnique: true,
-    isFeatured: false,
-    isNew: false,
+    is_unique: true,
+    is_featured: false,
+    is_new: false,
     colors: ["سبز خزه‌ای"],
     materials: "نخ اکریلیک، بند چرمی، آستر",
     dimensions: "۲۰×۱۶ سانتی‌متر، بند قابل تنظیم تا ۱۲۰",
-    prepDays: 5,
+    prep_days: 5,
     customizable: true,
   },
   {
@@ -145,13 +169,13 @@ const products: SeedProduct[] = [
     price: 225000,
     images: ["/images/bag-bucket.jpg"],
     stock: 2,
-    isUnique: false,
-    isFeatured: false,
-    isNew: false,
+    is_unique: false,
+    is_featured: false,
+    is_new: false,
     colors: ["رز خاکی"],
     materials: "نخ پنبه، بند کشویی پارچه‌ای",
     dimensions: "قطر ۱۸، ارتفاع ۲۲ سانتی‌متر",
-    prepDays: 5,
+    prep_days: 5,
     customizable: true,
   },
   {
@@ -164,13 +188,13 @@ const products: SeedProduct[] = [
     price: 295000,
     images: ["/images/knit-shawl.jpg"],
     stock: 3,
-    isUnique: false,
-    isFeatured: true,
-    isNew: false,
+    is_unique: false,
+    is_featured: true,
+    is_new: false,
     colors: ["عسلی", "خردلی"],
     materials: "نخ مرینوس ۵۰٪، اکریلیک ۵۰٪",
     dimensions: "۷۰×۱۶۰ سانتی‌متر",
-    prepDays: 7,
+    prep_days: 7,
     customizable: true,
   },
   {
@@ -183,13 +207,13 @@ const products: SeedProduct[] = [
     price: 95000,
     images: ["/images/knit-beanie.jpg"],
     stock: 4,
-    isUnique: false,
-    isFeatured: false,
-    isNew: true,
+    is_unique: false,
+    is_featured: false,
+    is_new: true,
     colors: ["سرمه‌ای"],
     materials: "نخ پشمی اکریلیک",
     dimensions: "اندازه آزاد (۵۴–۵۸)",
-    prepDays: 2,
+    prep_days: 2,
     customizable: true,
   },
   {
@@ -202,13 +226,13 @@ const products: SeedProduct[] = [
     price: 115000,
     images: ["/images/knit-mittens.jpg"],
     stock: 3,
-    isUnique: false,
-    isFeatured: false,
-    isNew: false,
+    is_unique: false,
+    is_featured: false,
+    is_new: false,
     colors: ["سبز خزه‌ای"],
     materials: "نخ پشمی اکریلیک",
     dimensions: "اندازه آزاد بزرگسال",
-    prepDays: 3,
+    prep_days: 3,
     customizable: true,
   },
   {
@@ -221,13 +245,13 @@ const products: SeedProduct[] = [
     price: 195000,
     images: ["/images/knit-runner.jpg"],
     stock: 2,
-    isUnique: false,
-    isFeatured: false,
-    isNew: false,
+    is_unique: false,
+    is_featured: false,
+    is_new: false,
     colors: ["کرم", "صورتی خاکی"],
     materials: "نخ پنبه",
     dimensions: "۴۰×۱۲۰ سانتی‌متر",
-    prepDays: 6,
+    prep_days: 6,
     customizable: true,
   },
   {
@@ -240,13 +264,13 @@ const products: SeedProduct[] = [
     price: 135000,
     images: ["/images/knit-scarf.jpg"],
     stock: 4,
-    isUnique: false,
-    isFeatured: false,
-    isNew: false,
+    is_unique: false,
+    is_featured: false,
+    is_new: false,
     colors: ["زنگاری", "کرم"],
     materials: "نخ پنبه و اکریلیک",
     dimensions: "۲۵×۱۸۰ سانتی‌متر",
-    prepDays: 4,
+    prep_days: 4,
     customizable: false,
   },
 ];
@@ -257,95 +281,89 @@ const reviews = [
     customerName: "مریم",
     rating: 5,
     comment: "دقیقاً مثل عکس بود، حتی قشنگ‌تر! بافتش خیلی تمیز و نازه. دخترم عاشقش شد.",
-    images: "[]",
   },
   {
     productSlug: "tote-bag-clay",
     customerName: "سارا",
     rating: 5,
     comment: "کیفیت نخ و بافت فوق‌العاده‌ست، خیلی مقاومه. رنگش هم دقیقاً همون زنگاریه که می‌خواستم.",
-    images: "[]",
   },
   {
     productSlug: "shawl-honey",
     customerName: "نگار",
     rating: 4,
     comment: "شال خیلی نرم و گرمه. فقط یه کم دیرتر از موعد رسید، ولی ارزشش رو داشت.",
-    images: "[]",
   },
   {
     productSlug: "amigurumi-bear",
     customerName: "احمد",
     rating: 5,
     comment: "برای هدیه تولد بچه‌گرفتم، مادر بچه خیلی خوشش اومد. ممنون از زحماتتون.",
-    images: "[]",
   },
 ];
 
 async function main() {
-  // Idempotent: اگه محصولات از قبل وجود داشته باشن و SEED_FORCE ست نباشه، skip کن.
-  // این یعنی seed روی Vercel فقط اولین بار اجرا می‌شه (توسط scripts/sync-db.mjs).
-  const existing = await db.product.count();
-  if (existing > 0 && !process.env.SEED_FORCE) {
-    console.log(`ℹ️  دیتابیس ${existing} محصول داره — از seed صرف‌نظر شد. (SEED_FORCE=1 برای اجبار)`);
-    return;
-  }
+  try {
+    const { count, error } = await supabase
+      .from("products")
+      .select("*", { count: "exact", head: true });
 
-  console.log("🌱 در حال پاک‌سازی دیتابیس...");
-  await db.review.deleteMany();
-  await db.orderItem.deleteMany();
-  await db.order.deleteMany();
-  await db.product.deleteMany();
-  await db.adminSession.deleteMany();
+    if (error) {
+      console.warn("⚠️ خطا در بررسی محصولات (شاید جداول هنوز ساخته نشده‌اند):", error.message);
+      console.warn("   اول supabase/schema.sql رو در Supabase SQL Editor اجرا کنید.");
+      process.exit(0);
+    }
 
-  console.log("📦 در حال افزودن محصولات...");
-  for (const p of products) {
-    await db.product.create({
-      data: {
-        slug: p.slug,
-        name: p.name,
-        category: p.category,
-        description: p.description,
-        story: p.story,
-        price: p.price,
-        images: JSON.stringify(p.images),
-        stock: p.stock,
-        isUnique: p.isUnique,
-        isFeatured: p.isFeatured,
-        isNew: p.isNew,
-        colors: JSON.stringify(p.colors),
-        materials: p.materials,
-        dimensions: p.dimensions,
-        prepDays: p.prepDays,
-        customizable: p.customizable,
-      },
-    });
-  }
+    if ((count ?? 0) > 0 && !process.env.SEED_FORCE) {
+      console.log(`ℹ️  دیتابیس ${count} محصول داره — از seed صرف‌نظر شد.`);
+      process.exit(0);
+    }
 
-  console.log("💬 در حال افزودن نظرات...");
-  for (const r of reviews) {
-    const product = await db.product.findUnique({ where: { slug: r.productSlug } });
-    if (!product) continue;
-    await db.review.create({
-      data: {
-        productId: product.id,
-        customerName: r.customerName,
+    console.log("🌱 در حال افزودن محصولات نمونه...");
+    const rows = products.map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      category: p.category,
+      description: p.description,
+      story: p.story,
+      price: p.price,
+      images: JSON.stringify(p.images),
+      stock: p.stock,
+      is_unique: p.is_unique,
+      is_featured: p.is_featured,
+      is_new: p.is_new,
+      colors: JSON.stringify(p.colors),
+      materials: p.materials,
+      dimensions: p.dimensions,
+      prep_days: p.prep_days,
+      customizable: p.customizable,
+    }));
+    const { error: insertError } = await supabase.from("products").insert(rows);
+    if (insertError) throw insertError;
+
+    console.log("💬 در حال افزودن نظرات نمونه...");
+    for (const r of reviews) {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("id")
+        .eq("slug", r.productSlug)
+        .maybeSingle();
+      if (!prod) continue;
+      await supabase.from("reviews").insert({
+        product_id: prod.id,
+        customer_name: r.customerName,
         rating: r.rating,
         comment: r.comment,
-        images: r.images,
+        images: "[]",
         approved: true,
-      },
-    });
-  }
+      });
+    }
 
-  console.log("✅ seed تمام شد.");
+    console.log("✅ seed انجام شد.");
+  } catch (e) {
+    console.warn("⚠️ seed ناموفق بود (build ادامه پیدا می‌کنه):", (e as Error).message);
+  }
+  process.exit(0);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await db.$disconnect();
-  });
+main();

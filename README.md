@@ -64,79 +64,56 @@ bun run dev
 
 ---
 
-## ☁️ دیپلوی روی Vercel (با Supabase — یک کلیکی!)
+## ☁️ دیپلوی روی Vercel (با Supabase)
 
-این پروژه برای **اتصال یک‌کلیکی به Supabase** روی Vercel آماده شده. فقط چندتا کلیک:
+این پروژه از **Supabase JS client** استفاده می‌کنه. مراحل:
 
-### مراحل دیپلوی
+### مرحله ۱ — ساخت پروژه‌ی Supabase
 
-#### مرحله ۱ — ایمپورت پروژه در Vercel
+1. به [supabase.com](https://supabase.com) برید و یه پروژه‌ی رایگان بسازید.
+2. صبر کنین پروژه آماده بشه.
 
-1. مخزن GitHub را در [vercel.com/new](https://vercel.com/new) ایمپورت کنید.
-2. Framework Preset: **Next.js** (خودکار تشخیص داده می‌شود).
-3. **فعلاً Deploy نزنید** — اول برید مرحله‌ی ۲.
+### مرحله ۲ — ساختن جداول (یک‌بار)
 
-#### مرحله ۲ — اتصال Supabase (یک کلیک!)
+1. در Supabase Dashboard → **SQL Editor** → **New query**.
+2. کل محتوای فایل [`supabase/schema.sql`](./supabase/schema.sql) رو کپی و Paste کنید.
+3. **Run** بزنید. جداول ساخته می‌شن. (این کار فقط یک‌بار لازمه.)
 
-1. در صفحه‌ی پروژه‌ی Vercel → تب **Storage**.
-2. دکمه‌ی **Connect Store** / **Create Database** → **Supabase** را انتخاب کنید.
-3. حساب Supabase رو متصل کنید (اگه ندارید، رایگان بسازید) و یک پروژه‌ی جدید بسازید.
-4. Vercel خودکار این متغیرها رو ست می‌کنه: `POSTGRES_PRISMA_URL`، `POSTGRES_URL`، `SUPABASE_URL` و غیره. **نیازی به کپی دستی نیست.**
+### مرحله ۳ — ایمپورت در Vercel
 
-#### مرحله ۳ — افزودن متغیرهای فروشگاه
-
-در تب **Settings → Environment Variables** این‌ها رو اضافه کنید (فقط مقادیر واقعی خودتون):
+1. مخزن GitHub رو در [vercel.com/new](https://vercel.com/new) ایمپورت کنید.
+2. در تب **Settings → Environment Variables** این متغیرها رو اضافه کنید:
 
 | نام | مقدار |
 |---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` (از Supabase → Settings → API) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | کلید publishable (همون‌جا) |
 | `SHOP_BANK_CARD` | شماره کارت واقعی |
-| `SHOP_BANK_SHABA` | شماره شبا |
 | `SHOP_BANK_OWNER` | نام صاحب حساب |
-| `SHOP_BANK_NAME` | نام بانک |
 | `SHOP_WHATSAPP` | `989123456789` |
-| `SHOP_TELEGRAM` | آیدی تلگرام |
 | `SHOP_INSTAGRAM` | آیدی اینستاگرام |
 | `SHOP_PHONE` | `989123456789` |
-| `SHOP_EMAIL` | ایمیل تماس |
-| `SHOP_SHIPPING_COST` | `65000` |
-| `SHOP_SHIPPING_METHOD` | `پست پیشتاز` |
-| `SHOP_SHIPPING_DAYS` | `۲ تا ۵ روز کاری` |
-| `SHOP_FREE_SHIPPING_THRESHOLD` | `1500000` |
-| `SHOP_RETURN_POLICY` | متن سیاست بازگشت |
-| `SHOP_ADMIN_USER` | نام کاربری پنل |
-| `SHOP_ADMIN_PASS` | رمز قوی پنل |
-| `SHOP_REVIEW_HOURS` | `2` |
+| `SHOP_ADMIN_USER` / `SHOP_ADMIN_PASS` | نام کاربری و رمز قوی پنل |
+| … | (بقیه در `.env.example`) |
 
-> 💡 `DATABASE_URL` رو **اضافه نکنید** — Supabase خودش `POSTGRES_PRISMA_URL` رو ست می‌کنه و اپ از همون می‌خونه.
+> 💡 اگه از دکمه‌ی **Connect Supabase** توی Vercel → Storage استفاده کنین، خودش دو متغیر اول رو ست می‌کنه.
 
-#### مرحله ۴ — Deploy! ✅
-
-دکمه‌ی **Deploy** (یا Redeploy) رو بزنید. در زمان build:
-- `prisma generate` (از طریق `postinstall`) خودکار اجرا می‌شه.
-- `scripts/sync-db.mjs` خودکار schema رو روی Supabase می‌سازه و اگه دیتابیس خالی باشه، محصولات نمونه رو seed می‌کنه.
-
-بعد از دیپلوی، سایت با محصولات نمونه بالا میاد. 🎉
+3. **Deploy**. در زمان build، `bun run scripts/seed.ts` خودکار محصولات نمونه رو اضافه می‌کنه (اگه دیتابیس خالی باشه).
 
 > **نکته:** رسید پرداخت به‌صورت base64 در دیتابیس ذخیره می‌شه (نه فایل) چون filesystem ورسل موقته. حداکثر ۲ مگابایت.
 
 ---
 
-## 💻 اجرای محلی (با Supabase)
+## 💻 اجرای محلی
 
-برای dev محلی، از همون پروژه‌ی Supabase استفاده کنید:
-
-1. در Supabase Dashboard → **Project Settings → Database → Connection string**.
-2. حالت **Transaction** (pooling، پورت ۶۵۴۳) رو کپی کنید.
-3. در `.env`:
+1. در `.env` این متغیرها رو از پروژه‌ی Supabase‌تون پر کنید:
    ```
-   DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
    ```
-4. سپس:
-   ```bash
-   bun run db:push    # ساخت جداول روی Supabase
-   bun run seed       # افزودن محصولات نمونه (فقط اولین بار)
-   bun run dev
-   ```
+2. جداول رو بسازید: محتوای `supabase/schema.sql` رو در Supabase SQL Editor اجرا کنید.
+3. محصولات نمونه: `bun run seed`
+4. `bun run dev`
 
 ---
 
@@ -145,11 +122,9 @@ bun run dev
 | دستور | کار |
 |---|---|
 | `bun run dev` | سرور توسعه روی پورت ۳۰۰۰ |
-| `bun run build` | build تولیدی |
+| `bun run build` | build تولیدی + seed خودکار |
 | `bun run lint` | بررسی ESLint |
-| `bun run db:push` | همگام‌سازی schema با دیتابیس |
-| `bun run db:generate` | تولید Prisma Client |
-| `bun run seed` | افزودن محصولات و نظرات نمونه |
+| `bun run seed` | افزودن محصولات و نظرات نمونه (idempotent) |
 
 ---
 

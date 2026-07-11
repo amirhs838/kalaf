@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/db";
 import { mapReview } from "@/lib/mappers";
+import type { ReviewRow } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
   const productId = req.nextUrl.searchParams.get("productId");
   if (!productId) {
     return NextResponse.json({ reviews: [] });
   }
-  const reviews = await db.review.findMany({
-    where: { productId, approved: true },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json({ reviews: reviews.map(mapReview) });
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("product_id", productId)
+    .eq("approved", true)
+    .order("created_at", { ascending: false });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ reviews: (data as ReviewRow[]).map(mapReview) });
 }
 
 export async function POST(req: NextRequest) {
@@ -21,20 +27,31 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "درخواست نامعتبر" }, { status: 400 });
   }
-  const { productId, customerName, rating, comment } = body;
+  const { productId, customerName, comment } = body;
   if (!productId || !customerName?.trim() || !comment?.trim()) {
     return NextResponse.json({ error: "همه‌ی فیلدها الزامی است" }, { status: 400 });
   }
-  const r = Math.max(1, Math.min(5, Math.floor(Number(rating) || 5)));
-  const review = await db.review.create({
-    data: {
-      productId,
-      customerName: customerName.trim(),
-      rating: r,
-      comment: comment.trim(),
-      images: "[]",
-      approved: false,
-    },
-  });
-  return NextResponse.json({ review: mapReview(review) }, { status: 201 });
+  const r = Math.max(1, Math.min(5, Math.floor(Number(body.rating) || 5)));
+
+  const row: Omit<ReviewRow, "id" | "created_at"> = {
+    product_id: productId,
+    customer_name: customerName.trim(),
+    rating: r,
+    comment: comment.trim(),
+    images: "[]",
+    approved: false,
+  };
+
+  const { data, error } = await supabase
+    .from("reviews")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error || !data) {
+    return NextResponse.json(
+      { error: error?.message ?? "خطا در ثبت نظر" },
+      { status: 500 }
+    );
+  }
+  return NextResponse.json({ review: mapReview(data as ReviewRow) }, { status: 201 });
 }

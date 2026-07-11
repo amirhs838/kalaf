@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/db";
 import { getAdminToken } from "@/lib/auth";
 import { mapOrder } from "@/lib/mappers";
-import type { OrderStatus } from "@/lib/types";
+import type { OrderStatus, OrderRow, OrderItemRow } from "@/lib/types";
 
 const VALID: OrderStatus[] = [
   "pending_review",
@@ -28,19 +28,44 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "درخواست نامعتبر" }, { status: 400 });
   }
-  const data: Record<string, unknown> = {};
+
+  const updateObj: Record<string, unknown> = {};
   if (body.status) {
     if (!VALID.includes(body.status as OrderStatus)) {
       return NextResponse.json({ error: "وضعیت نامعتبر" }, { status: 400 });
     }
-    data.status = body.status;
+    updateObj.status = body.status;
   }
-  if (typeof body.sellerNote === "string") data.sellerNote = body.sellerNote.trim() || null;
+  if (typeof body.sellerNote === "string") {
+    updateObj.seller_note = body.sellerNote.trim() || null;
+  }
 
-  const order = await db.order.update({
-    where: { id },
-    data,
-    include: { items: true },
-  });
-  return NextResponse.json({ order: mapOrder(order as never) });
+  if (Object.keys(updateObj).length === 0) {
+    return NextResponse.json({ error: "هیچ فیلدی برای به‌روزرسانی ارسال نشده" }, { status: 400 });
+  }
+
+  const { data: updatedData, error: updateError } = await supabase
+    .from("orders")
+    .update(updateObj)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (updateError || !updatedData) {
+    return NextResponse.json(
+      { error: updateError?.message ?? "خطا در به‌روزرسانی سفارش" },
+      { status: 500 }
+    );
+  }
+  const updated = updatedData as OrderRow;
+
+  const { data: itemsData, error: itemsError } = await supabase
+    .from("order_items")
+    .select("*")
+    .eq("order_id", updated.id);
+  if (itemsError) {
+    return NextResponse.json({ error: itemsError.message }, { status: 500 });
+  }
+  const items = (itemsData as OrderItemRow[]) ?? [];
+
+  return NextResponse.json({ order: mapOrder(updated, items) });
 }

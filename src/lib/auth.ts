@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { supabase } from "./db";
 import { shopConfig } from "./config";
 
 export const ADMIN_COOKIE = "kk_admin_token";
@@ -23,17 +23,28 @@ function parseCookies(cookieHeader: string | null): Record<string, string> {
   return out;
 }
 
+interface AdminSessionRow {
+  id: string;
+  token: string;
+  created_at: string;
+}
+
 /** بررسی اعتبار توکن ادمین */
 export async function getAdminToken(req: Request): Promise<string | null> {
   const cookies = parseCookies(req.headers.get("cookie"));
   const token = cookies[ADMIN_COOKIE];
   if (!token) return null;
-  const session = await db.adminSession.findUnique({ where: { token } });
+  const { data } = await supabase
+    .from("admin_sessions")
+    .select("*")
+    .eq("token", token)
+    .maybeSingle();
+  const session = data as AdminSessionRow | null;
   if (!session) return null;
   // expiry: 7 days
-  const ageMs = Date.now() - session.createdAt.getTime();
+  const ageMs = Date.now() - new Date(session.created_at).getTime();
   if (ageMs > 7 * 24 * 60 * 60 * 1000) {
-    await db.adminSession.delete({ where: { id: session.id } }).catch(() => {});
+    await supabase.from("admin_sessions").delete().eq("token", token);
     return null;
   }
   return token;
