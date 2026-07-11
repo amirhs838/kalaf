@@ -162,3 +162,31 @@ Stage Summary:
 - Lint is clean. No runtime test was performed (requires live Supabase env vars), but every query follows the documented Supabase patterns and uses the existing `supabase` lazy client + row types + mappers.
 - Note: in `orders/receipt/route.ts` the original Prisma code had a no-op `status: order.status === "pending_review" ? "pending_review" : order.status` (always equal to `order.status`) — I dropped it from the update object since it changes nothing; behaviour identical.
 - Note: in `admin/orders/[id]/route.ts` and `admin/products/[id]/route.ts` I added an explicit 400 response when the body contains no updatable fields, to avoid Supabase `.update({})` edge cases. This is a minor behavioral improvement, not a regression.
+
+---
+Task ID: SU (supabase JS migration)
+Agent: main + subagent (su9)
+Task: مهاجرت کامل از Prisma به Supabase JS client
+
+Work Log:
+- نصب @supabase/supabase-js @supabase/ssr؛ حذف prisma, @prisma/client, @prisma/adapter-libsql, @libsql/client
+- src/utils/supabase/server.ts و client.ts طبق quickstart سوپابیس
+- src/lib/db.ts: lazy Supabase client (NEXT_PUBLIC_SUPABASE_URL + publishable key)
+- src/lib/types.ts: افزودن row types (ProductRow, OrderRow, OrderItemRow, ReviewRow) با snake_case
+- src/lib/mappers.ts: بازنویسی برای snake_case → camelCase
+- src/lib/auth.ts: admin sessions از طریق Supabase
+- supabase/schema.sql: CREATE TABLE برای ۵ جدول + index + trigger
+- scripts/seed.ts: seed با Supabase JS (idempotent، resilient)
+- package.json: build = next build + seed؛ حذف prisma scripts
+- حذف: prisma/, scripts/sync-db.mjs
+- subagent (su9): بازنویسی همه‌ی ۱۰ API route از Prisma به Supabase JS. lint تمیز.
+- README و .env.example آپدیت برای مسیر Supabase JS
+- تست build: موفق (next build تمیز، seed پیام واضح داد که جداول هنوز ساخته نشدن)
+- تست agent-browser: صفحه‌ی اصلی رندر می‌شه با پیام "دیتابیس وصل نیست"
+- commit + push به github.com/amirhs838/kalaf (commit bf41622)
+- .env با مقادیر واقعی کاربر (URL + publishable key) — gitignored
+
+Stage Summary:
+- مهاجرت کامل. پروژه حالا از Supabase JS client استفاده می‌کنه.
+- ⚠️ قدم لازم برای کاربر: فایل supabase/schema.sql رو در Supabase Dashboard → SQL Editor اجرا کنه (یک‌بار). بعدش جداول ساخته می‌شن و seed خودکار (محلی و ورسل) محصولات رو اضافه می‌کنه.
+- روی ورسل: کافیه NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (که خودشون از Connect Supabase ست می‌شن) + متغیرهای SHOP_* رو ست کنه و redeploy بزنه.
