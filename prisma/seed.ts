@@ -283,6 +283,14 @@ const reviews = [
 ];
 
 async function main() {
+  // Idempotent: اگه محصولات از قبل وجود داشته باشن و SEED_FORCE ست نباشه، skip کن.
+  // این یعنی seed روی Vercel فقط اولین بار اجرا می‌شه (توسط scripts/sync-db.mjs).
+  const existing = await db.product.count();
+  if (existing > 0 && !process.env.SEED_FORCE) {
+    console.log(`ℹ️  دیتابیس ${existing} محصول داره — از seed صرف‌نظر شد. (SEED_FORCE=1 برای اجبار)`);
+    return;
+  }
+
   console.log("🌱 در حال پاک‌سازی دیتابیس...");
   await db.review.deleteMany();
   await db.orderItem.deleteMany();

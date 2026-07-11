@@ -64,54 +64,31 @@ bun run dev
 
 ---
 
-## ☁️ دیپلوی روی Vercel
+## ☁️ دیپلوی روی Vercel (با Supabase — یک کلیکی!)
 
-این پروژه برای Vercel آماده شده. دو نکته‌ی مهم برای serverless:
-
-1. **دیتابیس:** فایل SQLite لوکال روی Vercel دوام ندارد (filesystem موقت است). باید از **Turso** (libSQL سازگار با SQLite، رایگان) استفاده کنید.
-2. **رسید پرداخت:** به‌جای فایل، به‌صورت base64 در دیتابیس ذخیره می‌شود (حداکثر ۲ مگابایت).
-
-> ⚠️ **مهم:** حتماً همه‌ی متغیرهای محیطی (مخصوصاً `DATABASE_URL` و `DATABASE_AUTH_TOKEN`) را **قبل از اولین دیپلوی** در تنظیمات پروژه‌ی Vercel اضافه کنید. بدون این مقادیر، build یا runtime خطا می‌دهد.
+این پروژه برای **اتصال یک‌کلیکی به Supabase** روی Vercel آماده شده. فقط چندتا کلیک:
 
 ### مراحل دیپلوی
 
-#### مرحله ۱ — ساخت دیتابیس Turso (رایگان)
-
-اگر Turso CLI نصب نیست:
-
-```bash
-curl -sSfL https://get.tur.so/install.sh | bash
-turso auth login
-```
-
-ساخت دیتابیس و گرفتن اعتبار:
-
-```bash
-turso db create kalaf-kaghaz
-turso db show kalaf-kaghaz --url      # → libsql://kalaf-kaghaz-<user>.turso.io
-turso db tokens create kalaf-kaghaz   # → <long token>
-```
-
-اعتبار (schema) را push کنید:
-
-```bash
-# موقتاً DATABASE_URL و DATABASE_AUTH_TOKEN تورسو را در .env یا export کنید
-export DATABASE_URL="libsql://kalaf-kaghaz-<user>.turso.io"
-export DATABASE_AUTH_TOKEN="<token>"
-bun run db:push
-bun run seed
-```
-
-#### مرحله ۲ — ایمپورت پروژه در Vercel
+#### مرحله ۱ — ایمپورت پروژه در Vercel
 
 1. مخزن GitHub را در [vercel.com/new](https://vercel.com/new) ایمپورت کنید.
 2. Framework Preset: **Next.js** (خودکار تشخیص داده می‌شود).
-3. متغیرهای محیطی را در تنظیمات پروژه اضافه کنید:
+3. **فعلاً Deploy نزنید** — اول برید مرحله‌ی ۲.
+
+#### مرحله ۲ — اتصال Supabase (یک کلیک!)
+
+1. در صفحه‌ی پروژه‌ی Vercel → تب **Storage**.
+2. دکمه‌ی **Connect Store** / **Create Database** → **Supabase** را انتخاب کنید.
+3. حساب Supabase رو متصل کنید (اگه ندارید، رایگان بسازید) و یک پروژه‌ی جدید بسازید.
+4. Vercel خودکار این متغیرها رو ست می‌کنه: `POSTGRES_PRISMA_URL`، `POSTGRES_URL`، `SUPABASE_URL` و غیره. **نیازی به کپی دستی نیست.**
+
+#### مرحله ۳ — افزودن متغیرهای فروشگاه
+
+در تب **Settings → Environment Variables** این‌ها رو اضافه کنید (فقط مقادیر واقعی خودتون):
 
 | نام | مقدار |
 |---|---|
-| `DATABASE_URL` | `libsql://kalaf-kaghaz-<user>.turso.io` |
-| `DATABASE_AUTH_TOKEN` | توکن Turso |
 | `SHOP_BANK_CARD` | شماره کارت واقعی |
 | `SHOP_BANK_SHABA` | شماره شبا |
 | `SHOP_BANK_OWNER` | نام صاحب حساب |
@@ -130,9 +107,36 @@ bun run seed
 | `SHOP_ADMIN_PASS` | رمز قوی پنل |
 | `SHOP_REVIEW_HOURS` | `2` |
 
-4. **Deploy.**
+> 💡 `DATABASE_URL` رو **اضافه نکنید** — Supabase خودش `POSTGRES_PRISMA_URL` رو ست می‌کنه و اپ از همون می‌خونه.
 
-پس از دیپلوی، Vercel به‌صورت خودکار `prisma generate` را (از طریق `postinstall`) اجرا می‌کند.
+#### مرحله ۴ — Deploy! ✅
+
+دکمه‌ی **Deploy** (یا Redeploy) رو بزنید. در زمان build:
+- `prisma generate` (از طریق `postinstall`) خودکار اجرا می‌شه.
+- `scripts/sync-db.mjs` خودکار schema رو روی Supabase می‌سازه و اگه دیتابیس خالی باشه، محصولات نمونه رو seed می‌کنه.
+
+بعد از دیپلوی، سایت با محصولات نمونه بالا میاد. 🎉
+
+> **نکته:** رسید پرداخت به‌صورت base64 در دیتابیس ذخیره می‌شه (نه فایل) چون filesystem ورسل موقته. حداکثر ۲ مگابایت.
+
+---
+
+## 💻 اجرای محلی (با Supabase)
+
+برای dev محلی، از همون پروژه‌ی Supabase استفاده کنید:
+
+1. در Supabase Dashboard → **Project Settings → Database → Connection string**.
+2. حالت **Transaction** (pooling، پورت ۶۵۴۳) رو کپی کنید.
+3. در `.env`:
+   ```
+   DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+   ```
+4. سپس:
+   ```bash
+   bun run db:push    # ساخت جداول روی Supabase
+   bun run seed       # افزودن محصولات نمونه (فقط اولین بار)
+   bun run dev
+   ```
 
 ---
 

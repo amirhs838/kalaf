@@ -1,12 +1,12 @@
 // کلاف و کاغذ — schema
-// SQLite via Prisma. All money values are in Toman (integer).
+// PostgreSQL (Supabase). All money values are in Toman (integer).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
