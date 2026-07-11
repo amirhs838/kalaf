@@ -78,3 +78,22 @@ Stage Summary:
 - پروژه روی github.com/amirhs838/kalaf آماده‌ی دیپلوی Vercel است.
 - برای دیپلوی: کاربر باید یک دیتابیس Turso رایگان بسازد، schema را push کند، seed کند، و سپس در Vercel متغیرهای محیطی را تنظیم کند (DATABASE_URL، DATABASE_AUTH_TOKEN، و مقادیر SHOP_*).
 - README.md شامل دستورالعمل گام‌به‌گام است.
+
+---
+Task ID: V2 (vercel build fix)
+Agent: main (orchestrator)
+Task: حل ارور build ورسل (DATABASE_URL is not set) و برطرف کردن مشکل بالا نیامدن سایت local
+
+Work Log:
+- بررسی وضعیت: سرور dev از بین رفته بود (احتمالاً هنگام مهاجرت env). لاگ آخرین موفقیت‌ها را نشان می‌داد.
+- ریشه‌یابی ارور ورسل: `Error: DATABASE_URL is not set` در مرحله‌ی "Collecting page data" رخ می‌داد. علت: `db.ts` در زمان import ماژول، `createPrisma()` را صدا می‌زد و اگر env نبود throw می‌کرد. Vercel در build-time route moduleها را ارزیابی می‌کند و متغیرهای runtime هنوز در دسترس نبودند.
+- راه‌حل: بازنویسی `db.ts` با **lazy initialization** через Proxy. PrismaClient فقط در اولین query واقعی (request-time) ساخته می‌شود، نه در زمان import. تمام property access‌ها به instance واقعی forward می‌شوند.
+- تأیید local: سرور dev دوباره بالا آمد. بررسی API: محصولات (۱۲ محصول، فیلتر new/featured کار می‌کند)، محصول تکی، احراز هویت ادمین (۴۰۱). بررسی Agent Browser: صفحه‌ی اصلی با عنوان صحیح و ۳ کارت محصول رندر شد.
+- lint تمیز.
+- commit + push به github.com/amirhs838/kalaf (دو commit: fix lazy db + docs env vars).
+- README آپدیت شد: تأکید بر تنظیم env vars قبل از اولین دیپلوی.
+
+Stage Summary:
+- مشکل local حل شد (سایت بالا می‌آید).
+- مشکل build ورسل حل شد با lazy Prisma client (build اکنون بدون نیاز به DATABASE_URL در build-time انجام می‌شود).
+- ⚠️ نکته‌ی حیاتی برای کاربر: باید قبل از redeploy در Vercel، متغیرهای محیطی (حداقل DATABASE_URL و DATABASE_AUTH_TOKEN از Turso، به‌علاوه‌ی SHOP_* values) را در Settings → Environment Variables اضافه کند. بدون DATABASE_URL در runtime، APIها خطا می‌دهند.
