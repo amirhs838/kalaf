@@ -1,0 +1,99 @@
+// کلاف و کاغذ — schema
+// SQLite via Prisma. All money values are in Toman (integer).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  category     String // "doll" | "bag" | "knitwear"
+  description  String
+  story        String? // personal maker note
+  price        Int // toman
+  images       String // JSON array of image paths
+  stock        Int      @default(1)
+  isUnique     Boolean  @default(false) // تک‌نسخه
+  isFeatured   Boolean  @default(false)
+  isNew        Boolean  @default(false)
+  colors       String? // JSON array of color names
+  materials    String?
+  dimensions   String?
+  prepDays     Int      @default(3)
+  customizable Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orderItems   OrderItem[]
+  reviews      Review[]
+
+  @@index([category])
+  @@index([isFeatured])
+  @@index([isNew])
+}
+
+model Order {
+  id                   String   @id @default(cuid())
+  trackingCode         String   @unique
+  customerName         String
+  phone                String
+  province             String
+  city                 String
+  address              String
+  postalCode           String?
+  notes                String?
+  itemsTotal           Int
+  shippingCost         Int      @default(0)
+  total                Int
+  status               String   @default("pending_review")
+  // pending_review | payment_confirmed | preparing | shipped | delivered | cancelled
+  receiptPath          String?
+  receiptOriginalName  String?
+  transactionCode      String?
+  sellerNote           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  items                OrderItem[]
+
+  @@index([status])
+  @@index([phone])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String // snapshot
+  unitPrice   Int
+  quantity    Int
+  options     String? // JSON snapshot (color/size etc.)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  productId    String
+  customerName String
+  rating       Int
+  comment      String
+  images       String? // JSON array
+  approved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([approved])
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
