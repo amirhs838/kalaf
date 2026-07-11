@@ -44,3 +44,37 @@ Stage Summary:
 - Design achieves the brief's #1 goal: looks personally designed (kraft/yarn palette, Samim/Vazirmatn, hanging-tag product cards, stitch dividers, asymmetric layout), not an AI template.
 - All contact/bank values are env-driven placeholders (XXXX-XXXX-XXXX-XXXX) ready for the owner to fill in .env.
 - Dev server running cleanly on port 3000; 16 product/scene images in public/images/.
+
+---
+Task ID: V (vercel-prep)
+Agent: main (orchestrator)
+Task: آماده‌سازی پروژه برای دیپلوی روی Vercel و پوش به GitHub
+
+Work Log:
+- مهاجرت دیتابیس از SQLite لوکال به libSQL/Turso برای دوام روی serverless Vercel:
+  - نصب @prisma/adapter-libsql@6.19.2 و @libsql/client
+  - schema: provider sqlite + previewFeatures driverAdapters (deprecated but functional)
+  - db.ts: PrismaClient با PrismaLibSQL adapter (config مستقیم { url, authToken })
+  - رفع دو باگ مسیر: ۱) نسخه‌ی adapter باید با client هم‌خوان باشه (۷.x → ۶.۱۹.۲)، ۲) Prisma CLI مسیر file: نسبی رو نسبت به schema.prisma حل می‌کنه ولی adapter نسبت به cwd → استفاده از مسیر مطلق برای dev لوکال
+  - seed.ts آپدیت شد تا از db (adapter-based) استفاده کنه
+  - تأیید: API محصولات ۱۲ محصول برمی‌گرداند، فیلترها کار می‌کنند، احراز هویت ادمین ۴۰۱ می‌دهد
+- آپلود رسید از filesystem به base64 در دیتابیس (Vercel FS فقط‌خواندنی است):
+  - receipt route: خواندن فایل → base64 data URL → ذخیره در order.receiptPath
+  - cap از ۶ مگابایت به ۲ مگابایت کاهش یافت (حفظ اندازه‌ی ردیف DB)
+  - frontend (checkout/track) data URL را بدون تغییر نمایش می‌دهد
+- آماده‌سازی build:
+  - next.config: حذف output: standalone
+  - package.json: build → next build ساده، افزودن postinstall: prisma generate، افزودن seed script
+- فایل‌های repo:
+  - .gitignore: node_modules, .next, db/*.db, .env, skills/, examples/, package-lock.json, dev.log و غیره
+  - .env.example: راهنمای کامل با placeholder های امن و دستورالعمل Turso
+  - README.md: راهنمای فارسی کامل (اجرای محلی + دیپلوی Vercel با Turso + جدول env vars)
+- پاک‌سازی tracking: git rm --cached برای .env، db/custom.db، examples/ (قبلاً track شده بودند)
+- تأیید نهایی agent-browser (در یک دستور، چون سرور dev بین دستورات از بین می‌رود): صفحه اصلی، صفحه محصول، پنل ادمین همگی کار می‌کنند
+- git: commit + push به https://github.com/amirhs838/kalaf (main branch) با موفقیت
+- امنیت: توکن GitHub در .git/config ذخیره نشد (push با URL یک‌بارمصرف)؛ هیچ ghp_ در فایل‌های tracked نیست
+
+Stage Summary:
+- پروژه روی github.com/amirhs838/kalaf آماده‌ی دیپلوی Vercel است.
+- برای دیپلوی: کاربر باید یک دیتابیس Turso رایگان بسازد، schema را push کند، seed کند، و سپس در Vercel متغیرهای محیطی را تنظیم کند (DATABASE_URL، DATABASE_AUTH_TOKEN، و مقادیر SHOP_*).
+- README.md شامل دستورالعمل گام‌به‌گام است.
